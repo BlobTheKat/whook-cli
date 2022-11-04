@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en" style="height:100%">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Webhook</title>
+	<style>
+		*, *::before, *::after{touch-action: pan-x pan-y;box-sizing: border-box;line-height: 1.4em}
+		[noselect]{-webkit-user-select: none; user-select: none}
+		html{overflow: hidden}
+		@font-face {
+			font-family: ubuntu;
+			src: url(../Ubuntu-Regular.ttf);
+		}
+		body{
+			box-shadow: 0 0 50px #fff7;
+			display: flex;
+			flex-direction: column;
+			position: fixed;
+			overflow: hidden;
+			background: #222;
+			max-width: 400px;
+			margin: 0;
+			height: 100%;
+			min-height: 500px;
+			color: white;
+			font-family: ubuntu;
+			visibility: hidden;
+			text-size-adjust: none;
+			width: 100%;
+		}
+		@media (min-width: 401px){
+			body{margin-left: calc(50% - 200px)}
+		}
+		html{background: black}
+		@media (max-height: 499px){
+			body,html{overflow: auto;position:unset}
+		}
+		@media (min-height: 901px) {
+			body{margin-top: calc(50vh - 450px);height:900px}
+		}
+		#img{
+			width: 128px;
+			height: 128px;
+			object-fit: cover;
+			cursor: pointer;
+		}
+		#winfo{
+			display: inline-block;
+			padding: 1rem;
+			vertical-align: top;
+			max-height: 128px;
+			flex: 1;
+			font-size: 0;
+			overflow-y: auto;
+			border-bottom: 3px solid #aaa;
+		}
+		input, textarea{
+			padding: 0;
+			border-radius: 0;
+			color: white;
+			font-family: ubuntu;
+			font-size: 1rem; /*for safari*/
+			background: transparent;
+			-webkit-appearance: none;
+			border: none;
+			outline: none;
+			-webkit-tap-highlight-color: transparent;
+			border-bottom: 2px white solid;
+			resize: none;
+		}
+		#msg{
+			flex-grow: 1;
+			font-size: 1rem;
+			border: 2px #555 solid;
+			padding: 3px;
+			margin: 1rem;
+			width: calc(100% - 2rem);
+			height: 0;
+		}
+		.btn{
+			display: block;
+			text-align: center;
+			background: #5765f2;
+			cursor: pointer;
+			border: 2px white solid;
+			padding: 4px;
+		}
+		#send.active, #send:active{
+			color: #5765f2;
+			border-color: #5765f2;
+			background: white;
+		}
+		#bottom{
+			display: flex;
+			flex-grow: 1;
+			flex-direction: column;
+		}
+		#name{
+			width: calc(100% - 2rem);
+			font-size: 1.25rem;
+		}
+		#top{
+			display: flex;
+		}
+		#add{
+			vertical-align: bottom;
+			width: calc(2rem - 5px);
+			font-size: 1.25rem;
+			background: #070;
+			display: inline-block;
+			text-align: center;
+			margin-left: 5px;
+			cursor: pointer;
+		}
+		.profiles{
+			font-size: 1rem;
+			margin-top: 6px;
+			display: flex;
+			cursor: pointer;
+		}
+		.profilenames{
+			flex: 1;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+		.rem{
+			background: #a00;
+			vertical-align: bottom;
+			width: 1.3rem;
+			font-size: 1rem;
+			display: inline-block;
+			text-align: center;
+		}
+		[inline]{display: inline;height: 1.3rem;width: auto;vertical-align: bottom;margin-right: 3px}
+		#options{
+			display: flex;
+			height: 208px;
+		}
+		#sidebar{
+			flex-basis: 128px;
+			padding: .3rem;
+			flex-shrink: 0;
+		}
+		#mainbar{
+			min-width: 0;
+			flex-grow: 1;
+			display: flex;
+			margin-right: 4px;
+			flex-direction: column;
+		}
+		#messages{
+			width: 100%;
+			overflow: scroll;
+		}
+		input[type=checkbox]{
+			width: 1rem !important;
+			border: none;
+			height: 1rem;
+			vertical-align: middle;
+			margin: 2px;
+		}
+		input[type=color]{
+			width: 30px !important;
+			margin: 0 15px;
+			border: none;
+			height: 1em;
+			transform: scale(1.6);
+			cursor: pointer;
+		}
+		input[type=checkbox]:after{
+			display: block;
+			content: "";
+			width: 100%;
+			height: 100%;
+			background: #555;
+			border: 1px #888 solid;
+			box-sizing: border-box;
+		}
+		input[type=checkbox]:checked:after{
+			background: #55c;
+			content: "✓";
+			font-size: 1rem;
+			line-height: 1rem;
+			text-align: center;
+		}
+		#thread{
+			width:100%;
+			font-size: .68rem;
+		}
+		#addtip{
+			cursor: pointer;
+			text-shadow: 0 0 3px black;
+		}
+		.embedicon, .msgedit, .msgdel{
+			width: 1.1em;
+			height: 1.1em;
+			margin-top: 2px;
+			flex-shrink: 0;
+		}
+		.embedicon{
+			background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAALNJREFUWEftl+0KgDAIRfP9H9pgIMRqXD+bRP1deQ9HB0bH5oc25x8qAGbmbFAiGtkQoCJ8BGsAqsJVAJXhEACFiz7LXMw1ly1A4Vf6dABNeBmANrwtwKrH0iY4A1ED3wOwXrV0A1YAdCXNM9AGQMijQG4DbQBQj5GhsIH2ADPgbKTcQDsAARITrxtIA0DDpz13G9AGoPfMAKhg9Py2E1r2gWj441b8A2Ro9dSA/4aeopZvTgrk8CFVj0TuAAAAAElFTkSuQmCC) 0/cover;
+		}
+		.msgedit{
+			background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAM5JREFUWEftlusKgCAMRvW5ev6eyzAwxJy7fUOI+mt0ztYu5rT5yZv56bsC5UylZTcfdKAhGejhnARcYAZfSUAFVnBKAiYggc8kIAJjwXEyfVG6BaiCk9aCS4CDSLrBLMCluf7vmmpuHpgEJPBxxFPDSC2AhN9Z0iwjNFwlEAEXC0TBRQKRcFYgGg4XWO19qtjJLtBGb4EvM6ARsMIhAh44KSCN3gt3CSDgJgEU+Lkdje0h2eGa/cG9+2rDJoCOVD0HOHPUuWodo6D9d36BC718VyEUEZZ0AAAAAElFTkSuQmCC) 0/cover;
+			cursor: pointer;
+		}
+		.msgdel{
+			background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAGZJREFUWEftl0EKwCAMBDf/f7S92h7ChlqWwniOZpyEoKXwqnB+/QtgScsxVvIvNjIAwOcG3AROH3Qxe4/cegCAuIFn3U4BdXOhnQMAYAADGMAABjAQN/D27efsH/0LnAOnMQDEDVy1LjAhsPBlEwAAAABJRU5ErkJggg==) 0/cover;
+			cursor: pointer;
+		}
+		.message{
+			display: flex;
+    	border-bottom: 1px grey solid;
+			font-size: 1.1em;
+		}
+		.message .content{
+			flex-grow: 1;
+			text-overflow: ellipsis;
+			overflow: hidden;
+		}
+		::selection{
+			color: white;
+			background-color: #5764f2a0;
+		}
+		#sendbtns{
+			display: flex;
+			margin: 0 1rem 1rem 1rem;
+			gap: 1rem;
+		}
+		#sendbtns span{
+			flex-grow: 1;
+			font-size: 1.25rem;
+			display: block;
+			text-align: center;
+			background: #5765f2;
+			cursor: pointer;
+		}
+		#attachments{
+			overflow: auto;
+			flex: 3;
+			display: flex;
+			gap: 10px;
+			padding: 10px;
+			width: 100%;
+		}
+		#attachments:after{
+			content: "new embed\a–––––––––––––––––––\a add attachment";
+			text-align: center;
+			white-space: pre-wrap;
+			width: 160px;
+			height: 100%;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			background: #fff2;
+			border: #fff5 solid 3px;
+			border-radius: 10px;
+			cursor: pointer;
+		}
+		#attachments > div{
+			height: 100%;
+			border: #fff5 solid 3px;
+			border-radius: 10px;
+			overflow: hidden;
+			flex-shrink: 0;
+			position: relative;
+			min-width: 140px;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			flex-direction: column;
+			font-size: .7em;
+			white-space: pre-wrap;
+			max-width: 400px;
+		}
+		#attachments > div > *{height: 100%}
+		#attachments > div > div{
+			height: auto;
+			margin: 6px;
+		}
+		#attachments > div:before, #attachments > div:after{
+			content: "";
+			width: 50%; height: 100%;
+			position: absolute;
+			top: 0; bottom: 0;
+			opacity: 0; left: 0;
+			transition: opacity .3s;
+			display: block;
+			background: #0003 url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAM5JREFUWEftlusKgCAMRvW5ev6eyzAwxJy7fUOI+mt0ztYu5rT5yZv56bsC5UylZTcfdKAhGejhnARcYAZfSUAFVnBKAiYggc8kIAJjwXEyfVG6BaiCk9aCS4CDSLrBLMCluf7vmmpuHpgEJPBxxFPDSC2AhN9Z0iwjNFwlEAEXC0TBRQKRcFYgGg4XWO19qtjJLtBGb4EvM6ARsMIhAh44KSCN3gt3CSDgJgEU+Lkdje0h2eGa/cG9+2rDJoCOVD0HOHPUuWodo6D9d36BC718VyEUEZZ0AAAAAElFTkSuQmCC) center/48px no-repeat;
+			image-rendering: pixelated;
+			cursor: pointer;
+		}
+		#attachments > div:after{
+			left: unset; right: 0;
+			background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAGZJREFUWEftl0EKwCAMBDf/f7S92h7ChlqWwniOZpyEoKXwqnB+/QtgScsxVvIvNjIAwOcG3AROH3Qxe4/cegCAuIFn3U4BdXOhnQMAYAADGMAABjAQN/D27efsH/0LnAOnMQDEDVy1LjAhsPBlEwAAAABJRU5ErkJggg==);
+		}
+		#attachments > div:hover:before, #attachments > div:hover:after{opacity:1}
+		#addmsgfield{
+			width: 100%;
+			font-size: 1em;
+			border-bottom-color: #fff8;
+		}
+		#overlay{
+			position: fixed; display: none;
+			top: 0; left: 0; bottom: 0; right: 0;
+			justify-content: center; align-items: center;
+			z-index: 5; background: #0008;
+		}
+		#overlay > div{
+			display: none;
+			background: #222;
+			border: 2px white solid;
+			width: 300px;
+			padding: 30px 15px;
+			max-height: 80%;
+			overflow: auto;
+		}
+		#overlay > div input, #overlay > div .btn{
+			margin-top: 5px; width: 100%; border-bottom-width: 1px;
+		}
+		#overlay > div > input[type=checkbox]{
+			margin-top: 0;
+		}
+		#overlay.attachment, #overlay.embed{
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+		#overlay.attachment #attachment, #overlay.embed #embed{display: block}
+		.expand{
+			margin: 10px 0;
+			cursor: pointer;
+		}
+		.expand:before{
+			content: '\25BE';
+		}
+		.expand.hidden:before{
+			content: '\25B8';
+		}
+		.expand.hidden > *{
+			display: none;
+		}
+		h3{
+			margin: 0 0 10px 0;
+		}
+		.fieldeditor{display: none}
+		#embed .fieldeditor{display: block}
+	</style>
+</head>
+<body>
+	<div id="overlay" noselect>
+		<div id="attachment">
+			<h3>Edit attachment</h3>
+			<input id="filename" onchange="attEdit.cname = this.value; if(attEdit.el)attEdit.el.textContent = attEdit.cname || attEdit.name"/><br>
+			<input id="spoiler" type="checkbox" onchange="attEdit.spoiler=this.checked" /> Spoiler &nbsp; &nbsp; <input id="ephemeral" type="checkbox" onchange="attEdit.ephemeral=this.checked" /> Lasts forever
+			<div class="btn" onclick="window.id('overlay').className=''">Done</div>
+		</div>
+		<div class="fieldeditor expand hidden" onclick="if(event.target==this)this.classList.toggle('hidden')" style="color:#fffa">
+			Field
+			<input placeholder="Title" onchange="this.parentElement.field.name = this.value"/><br>
+			<input placeholder="Text" onchange="this.parentElement.field.value = this.value"/><br>
+			<input type="checkbox" onchange="this.parentElement.field.inline = !this.checked"/><span style="color:white" onclick="this.previousElementSibling.click()"> Use separate line</span><br>
+			<div class="btn" style="background:#ed4245;color:#fff" onclick="attEdit.fields.splice((attEdit.fields.indexOf(this.parentElement.field)+1||Infinity)-1,1);if(!attEdit.fields.length)attEdit.fields=undefined;this.parentElement.remove();">Delete field</div>
+		</div>
+		<div id="embed">
+			<h3>Edit embed</h1>
+			<input id="embedtitle" maxlength="256" placeholder="Title?" onchange="attEdit.title = this.value; if(attEdit.el)attEdit.el.children[0].textContent = attEdit.title"/><br>
+			<input id="embeddesc" maxlength="4096" placeholder="Description?" onchange="attEdit.description = this.value; if(attEdit.el)attEdit.el.children[1].textContent = attEdit.description"/><br>
+			<div style="height:5px"></div>
+			<input type="checkbox" id="embedcolortoggle" onchange="let el = window.id('embedcolor'); el.disabled=!this.checked; el.style.opacity=this.checked?'1':'0.5';attEdit.color = this.checked ? parseInt(el.value.slice(1), 16) : undefined" /><span onclick="this.previousElementSibling.click()"> Color </span><input disabled style="opacity:0.5" id="embedcolor" type="color" onchange="attEdit.color = parseInt(this.value.slice(1), 16)"/><br>
+			<div class="expand hidden" onclick="if(event.target==this)this.classList.toggle('hidden')">
+				Extra fields
+				<input id="embedurl" placeholder="Url?" onchange="attEdit.url = this.value"/><br>
+				<input id="embedtime" type="datetime-local" onchange="attEdit.time = +new Date(this.value) || 0"/><br>
+				<input id="embedthumb" type="url" placeholder="Thumbnail URL" onchange="attEdit.thumbnail = this.value ? {url: this.value} : undefined"/><br>
+			</div>
+			<div class="expand hidden" onclick="if(event.target==this)this.classList.toggle('hidden')">
+				Author
+				<input id="embedauthoricon" type="url" placeholder="Author Icon URL" onchange="attEdit.author.icon_url = this.value"/><br>
+				<input id="embedauthorurl" type="url" placeholder="Author Link" onchange="attEdit.author.url = this.value"/><br>
+				<input id="embedauthorname" placeholder="Author name" onchange="attEdit.author.name = this.value"/><br>
+			</div>
+			<div class="expand hidden" onclick="if(event.target==this)this.classList.toggle('hidden')">
+				Footer
+				<input id="embedfootericon" type="url" placeholder="Footer Icon URL" onchange="attEdit.footer.icon_url = this.value"/><br>
+				<input id="embedfootertext" placeholder="Footer Text" onchange="attEdit.footer.text = this.value"/><br>
+			</div>
+			<div class="expand hidden" onclick="if(event.target==this)this.classList.toggle('hidden')">
+				Media
+				<input id="embedimage" type="url" placeholder="Image URL" onchange="attEdit.image = this.value ? {url: this.value} : undefined"/><br>
+				<input id="embedvideo" type="url" placeholder="Video URL" onchange="attEdit.video = this.value ? {url: this.value} : undefined"/><br>
+				<input id="embedprovidername" placeholder="Provider name (e.g Youtube)" onchange="attEdit.provider.name = this.value"/><br>
+				<input id="embedproviderurl" type="url" placeholder="Provider URL (e.g youtube.com)" onchange="attEdit.provider.url = this.value"/><br>
+			</div>
+			<div id="addfieldbtn" style="text-decoration:underline;cursor:pointer;margin-bottom:10px" onclick="if(!attEdit.fields)attEdit.fields=[];let f = {name:'',value:'',inline:true};attEdit.fields.push(f);renderField(f)">Add Field</div>
+			
+			<div class="btn" onclick="window.id('overlay').className=''">Done</div>
+		</div>
+	</div>
+	<input type="file" id="upload" accept="image/*" style="display:none">
+	<div id="top" noselect>
+		<img src="https://cdn.discordapp.com/embed/avatars/0.png" id="img" />
+		<div onclick="this.previousElementSibling.click()" style="position: absolute;width: 124px;top: 106px;height: 20px;font-size:20px;text-align: right" id="addtip"></div>
+		<div id="winfo">
+			<input id="name" placeholder="" autocomplete="off" /> <span id="add">+</span>
+		</div>
+	</div>
+	<div id="options" noselect>
+		<div id="sidebar">
+			<span class="btn" style="margin-bottom: 5px;border-width: 2px;background:#ed4245" id="delete">delete hook</span>
+			<input type="checkbox" id="nouser" /> <label onclick="this.previousElementSibling.click()" title="Do not ping users">No @user</label><br>
+			<input type="checkbox" id="norole" /> <label onclick="this.previousElementSibling.click()" title="do not ping roles">No @role</label><br>
+			<input type="checkbox" id="nohere" checked /> <label onclick="this.previousElementSibling.click()" title="do not ping @here or @everypne">No @here</label><br>
+			<input type="checkbox" id="tts" /> <label onclick="this.previousElementSibling.click()" title="Speaks your message out loud to whoever is on the channel">Speak aloud</label><br>
+			<input type="checkbox" id="noembeds" /> <label onclick="this.previousElementSibling.click()" title="Don't show automatic link-preview embeds">No previews</label><br>
+			Send in thread:<br>
+			<input type="text" id="thread" placeholder="Thread Link / ID" oninput="let [, l] = this.value.match(/https?:\D+\d+\/(\d+)|/y);if(l)this.value=l;if(this.value == chid)this.value = ''" />
+		</div>
+		<div id="mainbar">
+			<span class="btn" style="margin: 5px 0;border-width: 2px" id="setdef">set default profile</span>
+			<div id="messages">
+				<input type="url" placeholder="Import a message by Link / ID" onkeypress="if(event.keyCode!=13)return;let [, ch, m] = this.value.match(/https?:\D+\d+\/(\d+)\/(\d+)/y) || this.value.match(/(?:(\d+)\D+)?(\d+)|/y);this.value='';if(!m)return;if(ch==chid||!ch)ch='';fetch(url+'/messages/'+m+(ch&&'?thread_id='+ch)).then(a=>a.json()).then(a=>{if(a.message)return;a.thread=ch;insertMessage(a)})" id="addmsgfield" />
+			</div>
+		</div>
+	</div>
+	<div id="attachments" onclick="if(event.target == this)if(event.offsetY>this.offsetHeight/2)file(addAttachment);else newEmbed()">
+	</div>
+	<div id="bottom">
+		<textarea id="msg" onkeypress="if(event.keyCode==13&&!event.shiftKey)event.preventDefault(),this.nextElementSibling.lastElementChild.click()" maxlength="2000"></textarea>
+		<div id="sendbtns">
+			<span id="cancel" style="display:none" class="btn" noselect ontouchstart="this.classList.add('active')" ontouchcancel="this.classList.remove('active')" ontouchend="this.classList.remove('active')" onclick="this.nextElementSibling.textContent='Send!';editing=null;this.style.display='none';swapAttachments()">Cancel</span>
+			<span id="send" class="btn" noselect ontouchstart="this.classList.add('active')" ontouchcancel="this.classList.remove('active')" ontouchend="this.classList.remove('active')" onclick="this.classList.remove('active');send(this.parentElement.previousElementSibling.value).then(a=>a.message?(this.style.color='red',setTimeout(()=>this.style.color='',2000)):(a=this.parentElement.previousElementSibling,a.selectionStart=0,a.selectionEnd=a.value.length,a.focus()))">Send!</span>
+		</div>
+	</div>
+	<script>
+	//onbeforeunload=()=>true
+	id=i => id._[i] || (id._[i]=document.getElementById(i));id._=Object.create(null)
+	url = localStorage["w-"+location.hash.slice(1)]
+	if(!url)window.close(),location.href='/'
+	let editing = null
+	const messages = []
+	let attachments = new Set, embeds = []
+	function markup(msg){
+		let d = document.createElement('div')
+		d.classList.add('message')
+		d.innerHTML = '<div class="content"></div>' + (msg.embeds.length || msg.attachments.length ? '<div class="embedicon"></div>' : '') + '<div class="msgedit"></div><div class="msgdel"></div>'
+		d.children[0].textContent = msg.content
+		d.lastElementChild.onclick = async function(){
+			await fetch(url+'/messages/'+msg.id+(msg.thread?'?thread_id='+msg.thread:''),{method:'DELETE'})
+			this.parentElement.remove()
+			messages.splice(messages.findIndex(a=>a.id==msg.id),1)
+			saveMessages()
+		}
+		d.lastElementChild.previousElementSibling.onclick = function(){
+			if(!editing)swapAttachments()
+			editing = msg
+			clearAttachments()
+			for(const s of msg.attachments)fetch(s.proxy_url).then(a=>a.blob()).then(a=>{
+				let spoiler = s.filename.startsWith('SPOILER_')
+				const file = new File([a], spoiler ? s.filename.slice(8) : s.filename, {type: s.content_type})
+				if(s.description)file.desc = s.description
+				file.spoiler = spoiler
+				addAttachment(file)
+			})
+			for(const s of msg.embeds)newEmbed(s)
+			id("send").textContent = "Edit!"
+			id("cancel").style.display=''
+			let text = id("msg")
+			text.value =  msg.content
+			text.selectionStart = 0
+			text.selectionEnd = msg.content.length
+			text.focus()
+		}
+		return d
+	}
+	function insertMessage(msg){
+		let idx = messages.findIndex(a => a.id > msg.id)
+		if(idx == -1){
+			if(messages.length && messages[messages.length-1].id == msg.id){
+				messages[messages.length - 1] = msg
+				id("messages").lastElementChild.previousElementSibling.replaceWith(markup(msg))
+				saveMessages()
+				return
+			}
+			messages.push(msg)
+			id("addmsgfield").insertAdjacentElement('beforeBegin', markup(msg))
+			saveMessages()
+			return
+		}
+		if(idx && messages[idx-1].id == msg.id){
+			messages[idx-1] = msg
+			id("messages").children[idx-1].replaceWith(markup(msg))
+			saveMessages()
+			return
+		}
+		messages.splice(idx, 0, msg)
+		id("messages").children[idx].insertAdjacentElement('beforeBegin', markup(msg))
+		if(messages.length > 100)messages.shift(), id("messages").children[0].remove()
+		saveMessages()
+	}
+	function saveMessages(){
+		localStorage['m-'+location.hash.slice(1)] = messages.map(a=>a.thread?a.id+'-'+a.thread:a.id).join(',')
+	}
+	const ms = localStorage['m-'+location.hash.slice(1)]
+	if(ms)for(let a of ms.split(',')){
+		let [id, th = ''] = a.split('-')
+		fetch(url+'/messages/'+id+(th&&'?thread_id='+th)).then(a=>a.json()).then(insertMessage)
+	}
+	if(!screenLeft && top == window && opener && opener.innerWidth > 600)opener.postMessage('')
+	const DEFAULT_PFP = 'https://cdn.discordapp.com/embed/avatars/0.png'
+	const btob = async (blob) => {
+		const base64url = await new Promise((r) => {
+			const reader = new FileReader()
+			reader.onload = () => r(reader.result)
+			reader.readAsDataURL(blob)
+		})
+		return base64url
+	}
+	esc=(a,...b)=>{
+		let res = [a[0]]
+		for(let i in a){
+			if(i=="0")continue
+			res.push(b[i-1].replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;").replace(/'/g,"&apos;"), a[i])
+		}
+		return res.join("")
+	}
+	let chid = ''
+	fetch(url).then(a=>a.json()).then(a=>{
+		if(a.message)window.close(),location.href='/'
+		document.title=a.name
+		document.body.style.visibility = 'visible'
+		chid = a.channel_id
+		id("name").placeholder = a.name
+		let av = a.avatar ? `https://cdn.discordapp.com/avatars/${a.id}/${a.avatar}.webp?size=128` : "https://cdn.discordapp.com/embed/avatars/0.png"
+		id("addtip").textContent = av == DEFAULT_PFP ? "add" : "none"
+		id("img").src = av
+		id("img").blob = null
+		id("img").onclick = function(){
+			if(this.blob)
+				this.blob = null,
+				this.src = av,
+				id("addtip").textContent = av == DEFAULT_PFP ? "add" : "none"
+			else if(this.src != DEFAULT_PFP){
+				this.src = DEFAULT_PFP
+				id("addtip").textContent = "add"
+			}else{
+				//ask for image, convert to url and set value
+				file(function(blob){
+					if(url.length > 20 * 1024 * 1024){
+						id("addtip").textContent = "20MB limit"
+						id("addtip").style.color = "red"
+						setTimeout(() => {
+							id("addtip").textContent = "add"
+							id("addtip").style.color = ""
+						}, 2000)
+						return
+					}
+					id("addtip").textContent = "reset"
+					id("img").src = URL.createObjectURL(blob)
+					id("img").blob = blob
+				}, function(){
+					let av = a.avatar ? `https://cdn.discordapp.com/avatars/${a.id}/${a.avatar}.webp?size=128` : "https://cdn.discordapp.com/embed/avatars/0.png"
+					id("addtip").textContent = av == DEFAULT_PFP ? "add" : "none"
+					URL.revokeObjectURL(id("img").src)
+					id("img").src = av
+				})
+			}
+		}
+		id("add").onclick = function(){
+			id("add").insertAdjacentHTML("afterend", esc`<div class='profiles'><img src='${URL.createObjectURL(("img").blob)}' inline onclick='this.nextElementSibling.click()' /><span onclick='window.id("name").value=this.textContent==window.id("name").placeholder?"":this.textContent;window.URL.revokeObjectURL(window.id("img").src);window.id("img").src=window.URL.createObjectURL(this.previousElementSibling.blob);window.id("img").blob=this.previousElementSibling.blob' class='profilenames' style='color:${["#e52","#e25", "#5e2", "#25e", "#52e"][Math.floor(Math.random() * 5)]}'>${(id("name").value || id("name").placeholder)}</span><span class='rem' onclick='window.URL.revokeObjectURL(this.parentElement.firstElementChild.src);this.parentElement.remove();'>-</span></div>`)
+			document.querySelector('.profiles img').blob = id("img").blob
+		}
+		id("setdef").onclick = async function(){
+			let nameel = id('name'), imgel = id('img')
+			let name = nameel.value || a.name, avatar = imgel.blob
+			if(avatar)avatar = await btob(avatar)
+			let res = await fetch(url, {method: "PATCH", headers: {'content-type': 'application/json'}, body: JSON.stringify(imgel.src.startsWith('blob:') ? {name, avatar} : {name})}).then(a=>a.json())
+			if(res.name == name){
+				nameel.placeholder = a.name = name
+				imgel.blob = null,
+				imgel.src = av = res.avatar ? `https://cdn.discordapp.com/avatars/${res.id}/${res.avatar}.webp?size=128` : "https://cdn.discordapp.com/embed/avatars/0.png"
+				id("addtip").textContent = av == DEFAULT_PFP ? "add" : "none"
+			}
+		}
+		id('delete').onclick = function(){
+			if(this.textContent == 'delete hook'){
+				this.textContent = 'are you sure?'
+				setTimeout(()=>this.textContent='delete hook',1000)
+				return
+			}
+			fetch(url, {method:'DELETE'}).then(()=>{
+				window.close()
+				top.postMessage('')
+			})
+		}
+	}).catch(e=>(window.close(),location.href='/'))
+	let fileHandle = () => {}, cancelHandle = () => {}
+	onfocus=()=>{cancelHandle();cancelHandle=()=>{}}
+	function file(cb, close = () => {}){
+		fileHandle = cb
+		cancelHandle = close
+		id('upload').value = ''
+		id('upload').click()
+	}
+	id('upload').addEventListener('change', function(e) {
+    if (!e.target.files.length)return cancelHandle()
+		fileHandle(e.target.files[0])
+	});
+	let urls = new Map()
+	async function avurl(){
+		let avatar = id("img").blob
+		if(!avatar)return undefined
+		let [time, link] = urls.get(avatar) || []
+		if(time > Date.now())return link
+		time = Date.now()+85e4
+		let a = new FormData()
+		a.set("file", avatar, "file")
+		let res = await fetch('https://tempx.herokuapp.com/api/v1/files/upload?expiry=15%20mins', {headers:{accept:"application/json"},method:"POST",body: a}).then(a=>a.json())
+		link = "https://tempx.herokuapp.com/api/v1/files/get/"+res.accessKey
+		urls.set(avatar, [time, link])
+		return link
+	}
+	async function send(content){
+		let name = id("name").value
+		let form = new FormData()
+		let m = []
+		if(!id('nouser').checked)m.push('users')
+		if(!id('norole').checked)m.push('roles')
+		if(!id('nohere').checked)m.push('everyone')
+		let att = []
+		let i = 0
+		for(const file of attachments){
+			let name = (file.spoiler ? 'SPOILER_' : '') + (file.cname || file.name)
+			att.push({id: i, filename: name, description: file.desc, ephemeral: file.ephemeral})
+			form.set('files['+i+']', file, name)
+			i++
+		}
+		for(const e of embeds)processEmbed(e)
+		form.set("payload_json", JSON.stringify({attachments: att, embeds, content: content || attachments.size || embeds.length ? content : '\u200b', username: name, avatar_url: await avurl(), tts: id('tts').checked, allowed_mentions: {parse: m}, flags: id('noembeds').checked ? 4 : 0}))
+		clearAttachments()
+		let thread = editing ? editing.thread : id('thread').value
+		let res = await fetch(url+(editing?'/messages/'+editing.id:'')+'?wait=true'+(thread?'&thread_id='+thread:''), {method: editing?"PATCH":"POST", body: form}).then(a=>a.json())
+		id("send").textContent = "Send!"
+		id("cancel").style.display='none'
+		if(editing && res.message){
+			let i = messages.find(a=>a.id == editing.id)
+			if(i >= 0){
+				messages.splice(i,1)
+				id("messages").children[i].remove()
+			}
+		}
+		if(editing)swapAttachments()
+		editing = null
+		if(res.id){
+			res.thread = thread
+			insertMessage(res)
+		}
+		return res
+	}
+	let otherAttachments = new Set, otherEmbeds = []
+	function swapAttachments(){
+		let arr = otherAttachments
+		otherAttachments = attachments
+		attachments = arr
+		id('attachments').innerHTML = ''
+		for(const e of attachments)addAttachment(e)
+		arr = otherEmbeds
+		otherEmbeds = embeds
+		embeds = []
+		for(const e of arr)newEmbed(e)
+	}
+	function clearAttachments(){
+		attachments.clear()
+		while(embeds.pop());
+		id('attachments').innerHTML = ''
+	}
+	let attEdit = null
+	function attachmentClick({offsetX}){
+		let att = this.attachment
+		if(offsetX > this.offsetWidth / 2){
+			if(att.type != 'rich')attachments.delete(att)
+			else embeds.splice((embeds.indexOf(att) + 1 || Infinity) - 1, 1)
+			this.remove()
+			return
+		}
+		//edit
+		attEdit = att
+		if(att.type == 'rich'){
+			id('embedtitle').value = att.title || ''
+			id('embeddesc').value = att.description || ''
+			id('embedtitle').value = att.title || ''
+			if(att.color == undefined)id('embedcolortoggle').checked = false, id('embedcolortoggle').onchange()
+			else id('embedcolor').value = '#'+att.color.toString(16).padStart(6, '0'), id('embedcolortoggle').checked = true, id('embedcolortoggle').onchange()
+			id('embedurl').value = att.url || ''
+			id('embedtime').value = att.time ? new Date(att.time).toISOString() : ''
+			id('embedthumb').value = att.thumbnail && att.thumbnail.url || ''
+			id('embedauthoricon').value = att.author && att.author.icon_url || ''
+			id('embedauthorurl').value = att.author && att.author.url || ''
+			id('embedauthorname').value = att.author && att.author.name || ''
+			id('embedfootericon').value = att.footer && att.footer.icon_url || ''
+			id('embedfootertext').value = att.footer && att.footer.text || ''
+			id('embedimage').value = att.image && att.image.url || ''
+			id('embedvideo').value = att.video && att.video.url || ''
+			id('embedprovidername').value = att.provider && att.provider.name || ''
+			id('embedproviderurl').value = att.provider && att.provider.url || ''
+			for(const a of document.querySelectorAll('#embed .fieldeditor'))a.remove()
+			if(att.fields)for(const f of att.fields)renderField(f)
+			id('overlay').className = 'embed'
+		}else{
+			id('filename').placeholder = att.name
+			id('filename').value = att.cname
+			id('spoiler').checked = att.spoiler
+			id('ephemeral').checked = att.ephemeral
+			id('overlay').className = 'attachment'
+		}
+		
+	}
+	function addAttachment(a){
+		attachments.add(a)
+		a.cname = a.cname || ''
+		a.spoiler = a.name.startsWith('SPOILER_') || a.spoiler || false
+		a.ephemeral = a.ephemeral || false
+		a.desc = a.desc || ''
+		let el = document.createElement('div')
+		if(/^image\//.test(a.type)){
+			var o = document.createElement('img')
+			o.src = a.url || URL.createObjectURL(a)
+		}else if(/^video\//.test(a.type)){
+			var o = document.createElement('video')
+			o.src = a.url || URL.createObjectURL(a)
+		}else{
+			var o = a.name
+			Object.defineProperty(a,'el',{value:el,enumerable:false,configurable:true})
+		}
+		el.append(o)
+		el.attachment = a
+		el.onclick = attachmentClick
+		id('attachments').append(el)
+	}
+	function newEmbed(e = {title: 'New Embed', description: 'Edit me!'}){
+		if(!e.author)e.author={name:'',icon_url:'',url:''}
+		if(!e.footer)e.footer={text:'',icon_url:''}
+		if(!e.provider)e.provider={name:'',url:''}
+		e.type = 'rich'
+		let el = document.createElement('div')
+		Object.defineProperty(e,'el',{value:el,enumerable:false,configurable:true})
+		let txt = document.createElement('div')
+		txt.textContent = e.title
+		el.append(txt)
+		txt = document.createElement('div')
+		txt.textContent = e.description
+		txt.style.fontSize = '0.8em'
+		el.append(txt)
+		el.attachment = e
+		el.onclick = attachmentClick
+		embeds.push(e)
+		id('attachments').append(el)
+	}
+	function renderField(a){
+		let el = document.querySelector('.fieldeditor').cloneNode(true)
+		el.field = a
+		el.children[0].value = a.name
+		el.children[2].value = a.value
+		el.children[4].checked = !a.inline
+		id('addfieldbtn').insertAdjacentElement('beforebegin', el)
+	}
+	function processUrl(a){
+		if(/[^\/]+\.(png|jpe?g|(g|jf)if|web[pm])$/y.test(a))return 'attachment://'+a
+		else if(!/https?:/y.test(a))return 'http://' + a
+		else return 'https://openclipart.org/image/400px/316034' //Broken image thumbnail
+	}
+	function processEmbed(e){
+		if(!e.provider.name)e.provider = undefined
+		if(!e.author.name)if(e.author.icon_url)e.author.name = '\u200b'; else e.author = undefined
+		if(!e.footer.text)if(e.footer.icon_url)e.footer.text = '\u200b'; else e.footer = undefined
+		if(!e.title && !e.description && !e.footer && !e.author && !e.provider && !e.image && !e.video)e.provider = {name:'\u200b'}
+	}
+	</script>
+</body>
+</html>

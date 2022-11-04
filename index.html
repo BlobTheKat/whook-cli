@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Webhook client</title>
+	<style>
+		*{
+			box-sizing: border-box;
+		}
+		[noselect]{-webkit-user-select: none;
+			user-select: none}
+		@font-face {
+			font-family: ubuntu;
+			src: url(./Ubuntu-Regular.ttf);
+		}
+		body{
+			color: white;
+			font-size: 16px;
+			font-family: ubuntu;
+			touch-action: pan-y;
+			margin: auto;
+			background: #222;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			height: 100vh;
+			margin: 0 10%;
+			overscroll-behavior: none;
+		}
+		#main{
+			text-align: center;
+			font-size: 2rem;
+		}
+		#main input{
+			border-radius: 0;
+			color: white;
+			font-family: ubuntu;
+			font-size: 1.25rem; /*for safari*/
+			margin: 2rem 0;
+			width: 100%;
+			background: transparent;
+			-webkit-appearance: none;
+			border: none;
+			outline: none;
+			-webkit-tap-highlight-color: transparent;
+			border-bottom: 2px white solid;
+		}
+		.w div{
+			display: inline-block;
+			height: 100%;
+			vertical-align: top;
+			font-size: 1rem;
+			padding: 0.8rem 2rem;
+			color: #888;
+			white-space: pre-wrap;
+		}
+		.w img{
+			width: 128px;
+			height: 128px;
+		}
+		.w{font-size: 0;cursor:pointer}
+		[data-copy]{font-style: italic}
+		@media (max-width: 564px){
+			.w img{
+				display: block;
+				width: 50%;
+				height: auto;
+				margin: auto;
+			}
+			.w div{
+				margin: 2rem 0;
+				padding: 1rem 0.5rem;
+			}
+			body{
+				margin: 0 5%;
+			}
+		}
+		.frame{
+			position: fixed;
+			border: 2px #555 solid;
+			border-radius: 2px;
+			box-shadow: 0 0 10px #000;
+			user-select: none;
+			-webkit-user-select: none;
+		}
+		.dragger{
+			position: absolute;
+			height: 20px;
+			border-top: #555 20px solid;
+			user-select: none;
+			-webkit-user-select: none;
+			color: #E55;
+			font-family: sans-serif;
+		}
+		.dragger div{
+			position: absolute;
+			top: -20px;
+			right: 7px;
+			line-height: 18px;
+			font-size: 22px;
+			cursor: pointer;
+		}
+	</style>
+</head>
+<body>
+	<div noselect id="main" style="display:block"><div>Enter webhook url:</div><input type="url"></div>
+	<script>
+	//onbeforeunload=()=>true
+	let dragdown = null
+	onmousedown = (e) => {
+		if(e.target.classList.contains('dragger')){
+			dragdown = e.target
+			dragdown.style.height='660px'
+		}else if(e.target.parentElement.classList.contains('dragger')){
+			dragdown = e.target
+		}
+	}
+	onmouseup = (e) => {
+		if(!dragdown)return
+		if(!dragdown.classList.contains('dragger')){
+			dragdown.parentElement.previousElementSibling.remove()
+			dragdown.parentElement.remove()
+			dragdown = null
+			return
+		}
+		dragdown.style.height=''
+		dragdown = null
+	}
+	let dragger = null, ifr = null, mx, my
+	onmousemove = function(e){
+		if(+mx !== +mx){
+			mx = e.clientX
+			my = e.clientY
+			return
+		}
+		let dx = e.clientX - mx
+		mx = e.clientX
+		let dy = e.clientY - my
+		my = e.clientY
+		if(!dragdown || !dragdown.classList.contains('dragger'))return
+		dragdown.previousElementSibling.style.left = dragdown.style.left = parseInt(dragdown.style.left) + dx + 'px'
+		dragdown.style.top = Math.max(0, parseInt(dragdown.style.top) + dy) + 'px'
+		dragdown.previousElementSibling.style.top = parseInt(dragdown.style.top) + 18 + 'px'
+	}
+	function openID(id){
+		let w, j
+		onmessage = function(){
+			if(w.closed){
+				j.previousElementSibling.remove()
+				j.remove()
+				delete localStorage['w-'+id]
+				document.getElementById('w-'+id).remove()
+				return
+			}
+			w.close()
+			let i = document.createElement('iframe')
+			i.classList.add('frame')
+			i.style.top=innerHeight/2-320 + 'px'
+			i.style.left=innerWidth/2-300 + 'px'
+			i.style.width = '360px'
+			i.style.height = '640px'
+			i.src='/webhook/#'+id
+			j = document.createElement('div')
+			j.style.left = i.style.left
+			j.style.width = i.style.width
+			j.style.top = innerHeight/2-338 + 'px'
+			j.classList.add('dragger')
+			j.innerHTML = '<div>x</div>'
+			dragger = j
+			ifr = i
+			document.body.appendChild(i)
+			document.body.appendChild(j)
+		}
+		w = window.open('/webhook#'+id, '', 'width=360,height=640,left='+(screen.availWidth/2-360 || 1))
+	}
+	function copy(el){event && event.stopPropagation();let old = el.innerHTML;navigator.clipboard.writeText(el.dataset.copy);el.innerHTML='copied!';setTimeout(()=>el.innerHTML=old,2000)}
+	esc=(a,...b)=>{
+		let res = [a[0]]
+		for(let i in a){
+			if(i=="0")continue
+			res.push((b[i-1]+'').replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;").replace(/'/g,"&apos;"), a[i])
+		}
+		return res.join("")
+	};
+	function markup(obj){
+		return esc`<div onclick="openID('${obj.id}')" noselect class="w" id="w-${obj.id}"><img src="${obj.avatar?`https://cdn.discordapp.com/avatars/${obj.id}/${obj.avatar}.webp?size=128`:"https://cdn.discordapp.com/embed/avatars/0.png"}" /><div><span style='font-size:1.5rem;color:#ddd'>${obj.name}</span>\n     id: <span onclick='copy(this)' data-copy="${obj.id}">${obj.id}</span>\n  guild: <span onclick='copy(this)' data-copy="${obj.guild_id}">${obj.guild_id}</span>\nchannel: <span onclick='copy(this)' data-copy="${obj.channel_id}">${obj.channel_id}</span>\n         <span style='color:#44a;text-decoration:underline' onclick='copy(this)' data-copy='${obj.token}'>copy token</span> <span style='color:#a44;text-decoration:underline' onclick='event.stopPropagation();if(this.textContent=="remove"){this.textContent = "are you sure? (won&apos;t delete)";let t = this;setTimeout(()=>t.textContent="remove",2000);return};delete localStorage[this.parentElement.parentElement.id];this.parentElement.parentElement.remove()'>remove</span></div></div>`
+	}
+	(d => {
+		function add(obj,i){
+			if(!obj.id)return void delete localStorage[i]
+			let m = markup(obj)
+			let a = document.getElementById(i)
+			if(a)return void (a.outerHTML = m)
+			d.insertAdjacentHTML('afterEnd', m)
+		}
+		for(let i in localStorage){
+			if(!i.startsWith('w-'))continue
+			fetch(localStorage[i]).then(a=>a.json()).then(a=>add(a,i))
+		}
+		d.lastElementChild.onkeypress=function(e){
+			if(e.keyCode != 13)return
+			url = d.lastElementChild.value
+			if(!url.match(/^https?:/)){
+				url = `https://discord.com/api/webhooks/${(url.match(/\d{17,}/)||[])[0]}/${(url.match(/[a-zA-Z0-9\-_]{50,}/)||[])[0]}`
+			}
+			fetch(url).then(a => a.json()).then(obj => {
+				if(obj.message)throw 1
+				localStorage['w-'+obj.id]=url
+				add(obj)
+				openID(obj.id)
+				d.lastElementChild.value = ''
+			}).catch(e => {
+				d.firstElementChild.style.color = 'red'
+				setTimeout(() => d.firstElementChild.style.color = 'white', 2e3)
+			})
+		}
+	})(document.currentScript.previousElementSibling)</script>
+</body>
+</html>
